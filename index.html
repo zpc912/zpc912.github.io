@@ -1,0 +1,116 @@
+<!DOCTYPE html >  
+<html>  
+	<head>  
+		<title>Exercise 5</title>  
+			<meta charset="UTF-8">
+			<script type="text/javascript" src="dist/web3.min.js"></script>
+			<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+	</head>  
+	<body>
+		<div class="container jumbotron text-center">
+			<h1>Exercise 5 - Ethereum DApp</h1>
+			<br><hr><br>
+				<div>
+					<div id="container">
+						<h5>Current Ropsten Network Height</h5>
+						<button onclick="getHeight()">Get Height</button>
+						<span id ="heightSpan"></span>
+					</div>
+					<br>
+					
+					<div id="container2">
+						<h5>Current Token Balance of Account</h5>
+						<button onclick="getTokenBalance()">Get Balance</button>
+						<span id ="tokenBalanceSpan"></span>
+					</div>
+					<br>
+					
+					<div id="container3">
+						<h5>Transfer Token to Special Address</h5>
+						<button onclick="transferToken()">Transfer 10 Token</button>
+						<span id ="transferTokenSpan"></span>
+					</div>
+					<br><br>
+					
+					<div id="container4">
+						<h5></h5>
+						<button class="enableEthereumButton">Connect to Metamask</button>
+					</div>
+					<br>
+				</div>
+		</div>
+			
+			<script type="text/javascript">
+				let web3 = new Web3(Web3.givenProvider || "ws://localhost:8545");
+				var helper = 0;
+				
+				var tokenAcc = '0x5C42d72413637b329f34296dd1794FA9d1361995';
+				var recipient = '0x15433DA387451F9dE4565280C85506CB71aF9376';
+				var amount = BigInt(10000000000000000000);
+				
+				const myAbi = [{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"balance","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"}];
+				const myAbiTransfer = [{"inputs":[{"internalType":"address","name":"recipient","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}];
+				const myAbiTransfer2 = [{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"}];
+
+				
+				if(typeof window.ethereum !== 'undefined') {
+					console.log('MetaMask is installed!');
+				}
+				
+				
+				// Get Height of Ropsten Network
+				async function getHeight(){
+					let curHeight = await web3.eth.getBlockNumber();
+					document.getElementById("heightSpan").innerText = curHeight;
+				}
+
+				
+				// Token balance of given account
+				async function getTokenBalance() {
+					if(web3.eth.defaultAccount === undefined || web3.eth.defaultAccount === null){
+						document.getElementById("tokenBalanceSpan").innerText = "please connect to metamask";
+						return;
+					}
+					let myContract = new web3.eth.Contract(myAbi, tokenAcc);
+					await myContract.methods.balanceOf(web3.eth.defaultAccount).call().then(
+						(value) => { showTokenBalance(value)}
+					);
+				}
+
+				
+				function showTokenBalance(result) {
+					document.getElementById("tokenBalanceSpan").innerText = result;
+				}
+
+				
+				// Transfer the token to a special address
+				async function transferToken() {
+					if(web3.eth.defaultAccount === undefined || web3.eth.defaultAccount === null){
+						document.getElementById("transferTokenSpan").innerText = "please connect to metamask";
+						return;
+					}
+					let myContract = new web3.eth.Contract(myAbiTransfer, tokenAcc);
+					await myContract.methods.transfer(recipient, amount).send({from: web3.eth.defaultAccount}).on(
+						'confirmation', (confirmationNumber, error)=>{
+							document.getElementById("transferTokenSpan").innerText = confirmationNumber;
+							console.log("transferToken: "+error);
+					});
+				}
+
+				
+				// Get Metamask input
+				const ethereumButton = document.querySelector('.enableEthereumButton');
+
+				ethereumButton.addEventListener('click', () => {
+					getAccount();
+				});
+
+				async function getAccount() {
+					const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+					const account = accounts[0];
+					web3.eth.defaultAccount = account;
+					helper = 1;
+				}
+			</script>
+	</body>
+</html>
